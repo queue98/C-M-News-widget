@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>뉴스 대시보드</title>
+<title>AI 뉴스 대시보드</title>
+
 <style>
 body {
     font-family: 'Segoe UI', sans-serif;
@@ -21,37 +22,51 @@ h1 {
     margin: 0 auto;
 }
 
+/* 카드 */
 .news-card {
     background: white;
     margin-bottom: 15px;
-    padding: 15px 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
     transition: 0.2s;
 }
 
 .news-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
 }
 
+/* 제목 */
 .news-title {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: bold;
     color: #1a0dab;
     text-decoration: none;
+    display: block;
+    margin-bottom: 8px;
 }
 
+/* 요약 */
+.news-summary {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+/* 출처 */
 .news-source {
     font-size: 13px;
-    color: #777;
-    margin-top: 5px;
+    color: #666;
 }
 
+/* 날짜 */
 .news-date {
     font-size: 12px;
     color: #aaa;
 }
 
+/* 로딩 */
 .loading {
     text-align: center;
     color: #666;
@@ -62,17 +77,36 @@ h1 {
 
 <body>
 
-<h1>📡 통신 · 미디어 · 우주 · IoT · 표준 뉴스</h1>
+<h1>📡 AI 요약 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h1>
 
 <div class="news-container" id="news">
     <div class="loading">뉴스 불러오는 중...</div>
 </div>
 
 <script>
-const RSS_URL = "https://news.google.com/rss/search?q=통신 미디어 우주 IoT 표준&hl=ko&gl=KR&ceid=KR:ko";
+// ✅ 키워드
+const KEYWORDS = "6G 통신 우주 표준 미디어 IoT";
 
-// RSS → JSON 변환용 (무료 API)
+// ✅ Google News RSS
+const RSS_URL =
+`https://news.google.com/rss/search?q=${encodeURIComponent(KEYWORDS)}&hl=ko&gl=KR&ceid=KR:ko`;
+
+// ✅ CORS 우회
 const API = "https://api.allorigins.win/raw?url=" + encodeURIComponent(RSS_URL);
+
+// ✅ HTML 제거 + 요약 생성 함수
+function extractSummary(html) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+
+    let text = tmp.textContent || tmp.innerText || "";
+
+    // 불필요 공백 제거
+    text = text.replace(/\s+/g, " ").trim();
+
+    // ✅ 100자 정도로 AI 요약 느낌 (2줄)
+    return text.length > 100 ? text.substring(0, 100) + "..." : text;
+}
 
 fetch(API)
 .then(res => res.text())
@@ -80,19 +114,33 @@ fetch(API)
 .then(data => {
     const items = data.querySelectorAll("item");
     const container = document.getElementById("news");
+
     container.innerHTML = "";
 
-    // 최신 5개만
-    [...items].slice(0,5).forEach(item => {
+    [...items].slice(0, 5).forEach(item => {
         const title = item.querySelector("title").textContent;
         const link = item.querySelector("link").textContent;
         const pubDate = new Date(item.querySelector("pubDate").textContent).toLocaleString();
+
+        const source = item.querySelector("source") 
+            ? item.querySelector("source").textContent
+            : "출처 미상";
+
+        // ✅ description → AI 요약
+        const description = item.querySelector("description")
+            ? item.querySelector("description").textContent
+            : "";
+
+        const summary = extractSummary(description);
 
         const card = document.createElement("div");
         card.className = "news-card";
 
         card.innerHTML = `
-            <a href="${link}" target="_blank" class="news-titlete">${pubDate}</div>
+            ${link}${title}</a>
+            <div class="news-summary">🤖 ${summary}</div>
+            <div class="news-source">📰 ${source}</div>
+            <div class="news-date">⏱ ${pubDate}</div>
         `;
 
         container.appendChild(card);
