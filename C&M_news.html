@@ -1,100 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI 뉴스 대시보드</title>
 
-const PRIMARY_KEYWORDS =
-  '("통신" OR "미디어" OR "우주" OR "IoT" OR "6G" OR "표준" OR "국제 표준" OR "표준화" OR "AI" OR "코덱" OR "MPEG" OR "3GPP" OR "ITU" OR "반도체")';
-
-const SECONDARY_KEYWORDS =
-  '(("5G" OR "네트워크" OR "통신") OR ("위성" OR "우주") OR ("AI" OR "반도체") OR ("데이터센터" OR "클라우드") OR ("XR" OR "플랫폼" OR "IoT"))';
-
-
-function fetchNews(keywords) {
-  const rss = "https://news.google.com/rss/search?q="
-      + encodeURIComponent(keywords)
-      + "&hl=ko&gl=KR&ceid=KR:ko";
-
-  const api = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rss);
-
-  return fetch(api).then(res => res.json());
+<style>
+body {
+  font-family: Arial;
+  background: #f5f7fb;
+  margin: 0;
+  padding: 20px;
 }
 
-function processItems(items) {
-  const now = new Date();
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(now.getMonth() - 1);
-
-  return items.filter(item => {
-    const pub = new Date(item.pubDate);
-    return pub >= oneMonthAgo;
-  });
+h1 {
+  text-align: center;
 }
 
-function render(items) {
-  const container = document.getElementById("news");
-  container.innerHTML = "";
+.container {
+  max-width: 900px;
+  margin: auto;
+}
 
-  items.slice(0, 10).forEach(item => {
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
 
-    const title = item.title;
-    const link = item.link;
-    const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
+.card:hover {
+  transform: translateY(-2px);
+}
 
-    let category = "기타";
-    if (title.includes("6G")) category = "6G";
-    else if (title.includes("우주") || title.includes("위성")) category = "우주";
-    else if (title.includes("IoT")) category = "IoT";
-    else if (title.includes("표준") || title.includes("3GPP") || title.includes("ITU")) category = "표준";
-    else if (title.includes("AI")) category = "AI";
-    else if (title.includes("코덱") || title.includes("MPEG")) category = "코덱";
-    else if (title.includes("통신")) category = "통신";
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
 
-    let signalClass = "green";
-    if (title.includes("투자") || title.includes("출시") || title.includes("확장"))
-      signalClass = "red";
-    else if (title.includes("협력") || title.includes("개발"))
-      signalClass = "yellow";
+.meta {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
 
-    container.innerHTML += `
-      <div class="card">
-        <div class="date">📅 ${date}</div>
-        <a href="${link}" target="_blank">
-          <div class="title">${title}</div>
-        </a>
-        <div class="bottom">
-          <div class="left">
-            <div class="signal ${signalClass}"></div>
-            <div class="badge">${category}</div>
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+  margin-right: 4px;
+  background: #eee;
+}
+
+.signal {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.red { background: #e74c3c; }
+.yellow { background: #f1c40f; }
+.green { background: #2ecc71; }
+
+a {
+  text-decoration: none;
+  color: black;
+}
+</style>
+</head>
+
+<body>
+<h1>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h1>
+
+<div class="container" id="news"></div>
+
+<script>
+const KEYWORDS = "통신 미디어 우주 IoT 6G 표준";
+const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
+
+fetch(API_URL)
+  .then(res => res.json())
+  .then(data => {
+
+    const container = document.getElementById("news");
+    container.innerHTML = "";
+
+    data.items.slice(0,5).forEach(item => {
+
+      const title = item.title;
+      const link = item.link;
+      const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
+
+      // 카테고리
+      let category = "기타";
+      if (title.includes("6G")) category = "6G";
+      else if (title.includes("우주") || title.includes("위성")) category = "우주";
+      else if (title.includes("IoT")) category = "IoT";
+      else if (title.includes("표준")) category = "표준";
+      else if (title.includes("통신")) category = "통신";
+
+      // 신호등
+      let signalClass = "green";
+      if (title.includes("투자") || title.includes("출시")) signalClass = "red";
+      else if (title.includes("협력") || title.includes("개발")) signalClass = "yellow";
+
+      container.innerHTML += `
+        <div class="card">
+          <a href="${link}" target="_blank">
+            <div class="title">${title}</div>
+          </a>
+          <div class="meta">📅 ${date}</div>
+          <div>
+            <span class="signal ${signalClass}"></span>
+            <span class="badge">${category}</span>
           </div>
         </div>
-      </div>
-    `;
-  });
-}
-
-// ✅ 실행 로직
-fetchNews(PRIMARY_KEYWORDS).then(data1 => {
-
-  let primaryItems = processItems(data1.items);
-
-  if (primaryItems.length >= 7) {
-    render(primaryItems);
-  } else {
-    // ✅ 2차 검색 (fallback)
-    fetchNews(SECONDARY_KEYWORDS).then(data2 => {
-
-      let secondaryItems = processItems(data2.items);
-
-      // ✅ 중복 제거 (링크 기준)
-      const combined = [...primaryItems];
-
-      secondaryItems.forEach(item => {
-        if (!combined.some(i => i.link === item.link)) {
-          combined.push(item);
-        }
-      });
-
-      render(combined);
+      `;
     });
-  }
+  })
+  .catch(() => {
+    document.getElementById("news").innerHTML = "뉴스 로드 실패";
+  });
+</script>
 
-}).catch(() => {
-  document.getElementById("news").innerHTML = "뉴스 로드 실패";
-});
+</body>
+</html>
