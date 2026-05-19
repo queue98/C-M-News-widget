@@ -82,52 +82,40 @@ a {
 
 <script>
 const KEYWORDS = "통신 미디어 우주 IoT 6G 표준";
-const RSS_URL = "https://news.google.com/rss/search?q="
-  + encodeURIComponent(KEYWORDS)
-  + "&hl=ko&gl=KR&ceid=KR:ko";
+const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
 
-fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL))
+fetch(API_URL)
   .then(res => res.json())
   .then(data => {
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(data.contents, "text/xml");
-    const items = xml.querySelectorAll("item");
 
     const container = document.getElementById("news");
     container.innerHTML = "";
 
-    items.forEach((item, i) => {
-      if (i >= 5) return;
+    data.items.slice(0,5).forEach(item => {
 
-      const title = item.querySelector("title").textContent;
-      const link = item.querySelector("link").textContent;
-      const pubDate = new Date(item.querySelector("pubDate").textContent);
+      const title = item.title;
+      const link = item.link;
+      const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
 
-      // 날짜 포맷
-      const date = pubDate.toLocaleDateString("ko-KR");
-
-      // 카테고리 자동 분류
+      // 카테고리
       let category = "기타";
       if (title.includes("6G")) category = "6G";
-      else if (title.includes("위성") || title.includes("우주")) category = "우주";
+      else if (title.includes("우주") || title.includes("위성")) category = "우주";
       else if (title.includes("IoT")) category = "IoT";
       else if (title.includes("표준")) category = "표준";
       else if (title.includes("통신")) category = "통신";
 
-      // 신호등 (단순 룰 기반)
+      // 신호등
       let signalClass = "green";
-      if (title.includes("투자") || title.includes("출시") || title.includes("확장"))
-        signalClass = "red";
-      else if (title.includes("협력") || title.includes("개발"))
-        signalClass = "yellow";
+      if (title.includes("투자") || title.includes("출시")) signalClass = "red";
+      else if (title.includes("협력") || title.includes("개발")) signalClass = "yellow";
 
       container.innerHTML += `
         <div class="card">
-          <a href="${link}" target="_ass="title">${title}</div>
+          <a href="${link}" target="_blank">
+            <div class="title">${title}</div>
           </a>
-          <div class="meta">
-            📅 ${date}
-          </div>
+          <div class="meta">📅 ${date}</div>
           <div>
             <span class="signal ${signalClass}"></span>
             <span class="badge">${category}</span>
@@ -136,8 +124,8 @@ fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL))
       `;
     });
   })
-  .catch(err => {
-    document.getElementById("news").innerHTML = "뉴스를 불러올 수 없습니다.";
+  .catch(() => {
+    document.getElementById("news").innerHTML = "뉴스 로드 실패";
   });
 </script>
 
