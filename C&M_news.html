@@ -8,8 +8,15 @@
 body { font-family: sans-serif; background:#f5f7fb; margin:0; }
 .container { max-width:900px; margin:auto; padding:20px; }
 
-h1 { font-size:20px; }
+/* ✅ 제목 강조 */
+.title a {
+  font-size:18px;
+  font-weight:bold;
+  color:#1a73e8;
+  text-decoration:none;
+}
 
+/* 카드 */
 .card {
   background:white;
   border-radius:12px;
@@ -18,6 +25,7 @@ h1 { font-size:20px; }
   box-shadow:0 3px 8px rgba(0,0,0,0.1);
 }
 
+/* 썸네일 */
 .thumb {
   width:100%;
   height:180px;
@@ -29,27 +37,33 @@ h1 { font-size:20px; }
   padding:14px;
 }
 
-.title a {
-  color:#1a73e8;
-  font-weight:bold;
-  text-decoration:none;
-}
-
 .summary { font-size:13px; margin:8px 0; }
 
-.meta { font-size:11px; color:gray; }
+.meta {
+  font-size:11px;
+  color:gray;
+  margin-top:6px;
+}
 
+/* 태그 */
 .tag {
   background:#e8f0fe;
   padding:3px 6px;
   border-radius:6px;
+  margin-right:4px;
 }
 
+/* ✅ Signal Score (신호등) */
 .score {
   float:right;
-  font-weight:bold;
+  font-size:16px;
 }
 
+.red { color:#e53935; }     /* HIGH */
+.yellow { color:#fbc02d; }  /* MID */
+.green { color:#43a047; }   /* LOW */
+
+/* 필터 */
 .filter button {
   margin:4px;
   padding:6px 10px;
@@ -57,10 +71,6 @@ h1 { font-size:20px; }
   border-radius:8px;
   background:#ddd;
   cursor:pointer;
-}
-.filter button.active {
-  background:#1a73e8;
-  color:white;
 }
 </style>
 
@@ -70,15 +80,7 @@ h1 { font-size:20px; }
 
 <div class="container">
 
-<h1>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h1>
-
-<div class="filter">
-  <button onclick="setFilter('ALL')">전체</button>
-  <button onclick="setFilter('6G')">6G</button>
-  <button onclick="setFilter('우주')">우주</button>
-  <button onclick="setFilter('IoT')">IoT</button>
-  <button onclick="setFilter('표준')">표준</button>
-</div>
+<h2>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h2>
 
 <div id="news"></div>
 
@@ -86,108 +88,115 @@ h1 { font-size:20px; }
 
 <script>
 
-// ✅ GPT KEY
-const OPENAI_API_KEY = "여기에_API_KEY";
-
-// ✅ 상태
-let NEWS_DATA = [];
-let CURRENT_FILTER = "ALL";
-
-// ✅ 🔥 개선된 검색식 (핵심)
+// ✅ 검색식 (품질 유지)
 const KEYWORDS =
-  '(6G OR 통신 OR telecom OR media OR 미디어 OR satellite OR 위성 OR IoT) ' +
-  '(standard OR 표준 OR 3GPP OR ITU)';
+ '(6G OR 통신 OR telecom OR media OR 미디어 OR satellite OR 위성 OR IoT) ' +
+ '(standard OR 표준 OR 3GPP OR ITU)';
 
 const RSS_URL =
-  "https://news.google.com/rss/search?q=" + encodeURIComponent(KEYWORDS) +
-  "&hl=ko&gl=KR&ceid=KR:ko";
+ "https://news.google.com/rss/search?q=" + encodeURIComponent(KEYWORDS) +
+ "&hl=ko&gl=KR&ceid=KR:ko";
 
-// ✅ 안정 proxy
 const API =
-  "https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL);
+ "https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL);
 
-// ✅ 원본 링크 추출 (핵심 해결)
+// ✅ 링크 변환
 function extractRealLink(link){
   try{
-    const url = new URL(link);
-    const params = new URLSearchParams(url.search);
-    if(params.get("url")){
-      return params.get("url");
-    }
-    return link;
-  } catch {
-    return link;
-  }
+    const u = new URL(link);
+    const p = new URLSearchParams(u.search);
+    return p.get("url") || link;
+  } catch{return link;}
 }
 
-// ✅ 썸네일 추출
+// ✅ 이미지
 function extractImage(desc){
-  const match = desc.match(/<img.*?src="(.*?)"/);
-  return match ? match[1] : "https://via.placeholder.com/800x400?text=No+Image";
+  const m = desc.match(/<img.*?src="(.*?)"/);
+  return m ? m[1] : "https://via.placeholder.com/800x400";
 }
 
-// ✅ 태그
-function getTag(text){
-  if(text.includes("6G")) return "6G";
-  if(text.includes("위성") || text.includes("우주")) return "우주";
+// ✅ 빠른 요약 (초경량)
+function quickSummary(desc){
+  const text = desc우주") || text.includes("위성")) return "우주";
   if(text.includes("IoT")) return "IoT";
-  if(text.includes("표준") || text.includes("3GPP")) return "표준";
+  if(text.includes("표준")) return "표준";
   return "통신";
 }
 
-// ✅ Signal Score
+// ✅ Signal Score + 색상
 function getScore(text){
-  if(text.includes("시장") || text.includes("상용화")) return "HIGH";
-  if(text.includes("개발") || text.includes("연구")) return "MID";
-  return "LOW";
-}
-
-// ✅ GPT 요약
-async function summarize(text){
-
-  if(!OPENAI_API_KEY.includes("API")){
-    return "요약 없음 (API key 넣으면 활성화)";
+  if(text.includes("시장") || text.includes("상용화")){
+    return {label:"🔴", cls:"red"};
   }
-
-  try{
-    const res = await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+OPENAI_API_KEY
-      },
-      body:JSON.stringify({
-        model:"gpt-4o-mini",
-        messages:[
-          {
-            role:"user",
-            content:`뉴스를 2줄 요약 + 사업 insight 1줄:\n${text}`
-          }
-        ]
-      })
-    });
-
-    const data = await res.json();
-    return data.choices[0].message.content;
-
-  }catch{
-    return "요약 실패";
+  if(text.includes("개발") || text.includes("연구")){
+    return {label:"🟡", cls:"yellow"};
   }
+  return {label:"🟢", cls:"green"};
 }
 
 // ✅ RSS 파싱
 function parseRSS(xml){
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml,"text/xml");
+  const doc = new DOMParser().parseFromString(xml,"text/xml");
 
-  return [...doc.querySelectorAll("item")].slice(0,d.map(n => ({
-    ...n,
-    tag: getTag(n.title),
-    score: getScore(n.title)
-  }));
+  return [...doc.querySelectorAll("item")]
+    .slice(0,5)
+    .map(item=>{
 
-  render();
+      const desc = item.querySelector("description").textContent;
+      const title = item.querySelector("title").textContent;
 
+      const score = getScore(title);
+
+      return {
+        title,
+        link: extractRealLink(item.querySelector("link").textContent),
+        image: extractImage(desc),
+        summary: quickSummary(desc),
+        tag: getTag(title),
+        score: score
+      };
+    });
+}
+
+// ✅ 렌더 (빠름)
+function render(list){
+
+  const wrap = document.getElementById("news");
+  wrap.innerHTML = "";
+
+  list.forEach(n=>{
+
+    const html = `
+    <div class="card">
+
+      <div class="thumb" style="background-image:url('${n.image}')"></div>
+
+      <div class="content">
+
+        <div class="title">
+          <a href="${n.link}" target        <span class="score ${n.score.cls}">${n.score.label}</span>
+        </div>
+
+        <div class="summary">${n.summary}</div>
+
+        <div class="meta">
+          <span class="tag">${n.tag}</span>
+        </div>
+
+      </div>
+    </div>
+    `;
+
+    wrap.insertAdjacentHTML("beforeend", html);
+  });
+}
+
+// ✅ 실행
+fetch(API)
+.then(r=>r.json())
+.then(data=>{
+  const parsed = parseRSS(data.contents);
+  render(parsed);
 })
 .catch(()=>{
   document.getElementById("news").innerHTML = "❌ 뉴스 로드 실패";
