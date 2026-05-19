@@ -17,17 +17,8 @@ body { font-family: Arial; background:#f5f7fb; padding:20px; }
   box-shadow:0 4px 10px rgba(0,0,0,0.08);
 }
 
-.date {
-  font-size:12px;
-  color:#888;
-  margin-bottom:6px;
-}
-
-.title {
-  font-size:18px;
-  font-weight:bold;
-  margin-bottom:10px;
-}
+.date { font-size:12px; color:#888; margin-bottom:6px; }
+.title { font-size:18px; font-weight:bold; margin-bottom:10px; }
 
 .badge {
   display:inline-block;
@@ -62,7 +53,7 @@ a { text-decoration:none; color:black; }
 
 <script>
 
-// ✅ 키워드 확장 (표준연구소 최적화)
+// ✅ 확장 키워드
 const PRIMARY = [
   "6G","5G","통신","네트워크","위성","우주",
   "IoT","AI","미디어","코덱","데이터센터"
@@ -79,8 +70,11 @@ const RSS_URL = "https://news.google.com/rss/search?q="
   + encodeURIComponent(KEYWORDS)
   + "&hl=ko&gl=KR&ceid=KR:ko";
 
-// rss2json
-const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
+// ✅ count=50 추가 → 뉴스 개수 확대
+const API_URL =
+  "https://api.rss2json.com/v1/api.json?rss_url="
+  + encodeURIComponent(RSS_URL)
+  + "&count=50";
 
 fetch(API_URL)
 .then(res => res.json())
@@ -90,22 +84,20 @@ fetch(API_URL)
   container.innerHTML = "";
 
   const now = new Date();
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(now.getMonth() - 1);
+  const twoMonthsAgo = new Date();
+  twoMonthsAgo.setMonth(now.getMonth() - 2);
 
-  // ✅ 최근 1달 필터
+  // ✅ 최근 2개월 필터
   const filtered = data.items.filter(item => {
     const pub = new Date(item.pubDate);
-    return pub >= oneMonthAgo;
+    return pub >= twoMonthsAgo;
   });
 
-  // ✅ 결과 출력
   filtered.forEach(item => {
 
     const title = item.title;
     const link = item.link;
-    const dateObj = new Date(item.pubDate);
-    const date = dateObj.toLocaleDateString("ko-KR");
+    const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
 
     // 카테고리
     let category = "기타";
@@ -127,7 +119,7 @@ fetch(API_URL)
 
         <div class="date">📅 ${date}</div>
 
-        <a href="${link}" target="_blanktle">${title}</div>
+        <a href="${link}" targetlass="title">${title}</div>
         </a>
 
         <div>
@@ -140,7 +132,7 @@ fetch(API_URL)
   });
 
   if(filtered.length === 0) {
-    container.innerHTML = "최근 1달 내 뉴스가 없습니다.";
+    container.innerHTML = "최근 2개월 내 뉴스가 없습니다.";
   }
 
 })
