@@ -1,132 +1,149 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AI 뉴스 대시보드</title>
+<meta charset="UTF-8">
+<title>AI 뉴스</title>
 
 <style>
-body {
-  font-family: Arial;
-  background: #f5f7fb;
-  margin: 0;
-  padding: 20px;
-}
+body { font-family: Arial; background:#f5f7fb; padding:20px; }
 
-h1 {
-  text-align: center;
-}
-
-.container {
-  max-width: 900px;
-  margin: auto;
-}
+.container { max-width:900px; margin:auto; }
 
 .card {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transition: 0.2s;
+  background:white;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
 }
 
-.card:hover {
-  transform: translateY(-2px);
+.date {
+  font-size:12px;
+  color:#888;
+  margin-bottom:6px;
 }
 
 .title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 8px;
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:12px;
 }
 
-.meta {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
+.bottom {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.left {
+  display:flex;
+  align-items:center;
 }
 
 .badge {
-  display: inline-block;
-  padding: 4px 8px;
-  font-size: 11px;
-  border-radius: 8px;
-  margin-right: 4px;
-  background: #eee;
+  display:inline-block;
+  padding:4px 8px;
+  font-size:11px;
+  border-radius:8px;
+  background:#eee;
+  margin-left:6px;
 }
 
 .signal {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 6px;
+  width:10px;
+  height:10px;
+  border-radius:50%;
 }
 
-.red { background: #e74c3c; }
-.yellow { background: #f1c40f; }
-.green { background: #2ecc71; }
+.red { background:#e74c3c; }
+.yellow { background:#f1c40f; }
+.green { background:#2ecc71; }
 
-a {
-  text-decoration: none;
-  color: black;
-}
+a { text-decoration:none; color:black; }
 </style>
 </head>
 
 <body>
-<h1>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h1>
-
+<h2>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h2>
 <div class="container" id="news"></div>
 
 <script>
-const KEYWORDS = "통신 미디어 우주 IoT 6G 표준";
+
+// ✅ 확장 키워드
+const KEYWORDS = "통신 미디어 우주 IoT 6G 표준 국제 표준 표준화 AI 코덱 MPEG 3GPP ITU 반도체";
+
+const RSS_URL = "https://news.google.com/rss/search?q="
+  + encodeURIComponent(KEYWORDS)
+  + "&hl=ko&gl=KR&ceid=KR:ko";
+
 const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
 
 fetch(API_URL)
-  .then(res => res.json())
-  .then(data => {
+.then(res => res.json())
+.then(data => {
 
-    const container = document.getElementById("news");
-    container.innerHTML = "";
+  const container = document.getElementById("news");
+  container.innerHTML = "";
 
-    data.items.slice(0,5).forEach(item => {
+  const now = new Date();
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(now.getMonth() - 1);
 
-      const title = item.title;
-      const link = item.link;
-      const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
+  const filtered = data.items.filter(item => {
+    const pub = new Date(item.pubDate);
+    return pub >= oneMonthAgo;
+  });
 
-      // 카테고리
-      let category = "기타";
-      if (title.includes("6G")) category = "6G";
-      else if (title.includes("우주") || title.includes("위성")) category = "우주";
-      else if (title.includes("IoT")) category = "IoT";
-      else if (title.includes("표준")) category = "표준";
-      else if (title.includes("통신")) category = "통신";
+  filtered.forEach(item => {
 
-      // 신호등
-      let signalClass = "green";
-      if (title.includes("투자") || title.includes("출시")) signalClass = "red";
-      else if (title.includes("협력") || title.includes("개발")) signalClass = "yellow";
+    const title = item.title;
+    const link = item.link;
+    const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
 
-      container.innerHTML += `
-        <div class="card">
-          <a href="${link}" target="_blank">
-            <div class="title">${title}</div>
-          </a>
-          <div class="meta">📅 ${date}</div>
-          <div>
-            <span class="signal ${signalClass}"></span>
-            <span class="badge">${category}</span>
+    // 카테고리 고도화
+    let category = "기타";
+    if (title.includes("6G")) category = "6G";
+    else if (title.includes("우주") || title.includes("위성")) category = "우주";
+    else if (title.includes("IoT")) category = "IoT";
+    else if (title.includes("표준") || title.includes("표준화") || title.includes("ITU") || title.includes("3GPP")) category = "표준";
+    else if (title.includes("AI")) category = "AI";
+    else if (title.includes("코덱") || title.includes("MPEG")) category = "코덱";
+    else if (title.includes("통신")) category = "통신";
+
+    // 신호등
+    let signalClass = "green";
+    if (title.includes("투자") || title.includes("출시") || title.includes("확장"))
+      signalClass = "red";
+    else if (title.includes("협력") || title.includes("개발") || title.includes("표준화 진행"))
+      signalClass = "yellow";
+
+    container.innerHTML += `
+      <div class="card">
+        <div class="date">📅 ${date}</div>
+
+        ${link}
+          <div class="title">${title}</div>
+        </a>
+
+        <div class="bottom">
+          <div class="left">
+            <div class="signal ${signalClass}"></div>
+            <div class="badge">${category}</div>
           </div>
         </div>
-      `;
-    });
-  })
-  .catch(() => {
-    document.getElementById("news").innerHTML = "뉴스 로드 실패";
+      </div>
+    `;
   });
+
+  if(filtered.length === 0) {
+    container.innerHTML = "최근 1달 내 뉴스가 없습니다.";
+  }
+
+})
+.catch(() => {
+  document.getElementById("news").innerHTML = "뉴스 로드 실패";
+});
+
 </script>
 
 </body>
