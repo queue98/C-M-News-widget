@@ -1,43 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
+<title>뉴스 대시보드</title>
 <style>
-body { font-family: Arial; font-size:14px; margin:10px; }
-li { margin-bottom:10px; }
-</style>
-</head>
-<body>
-
-<h3>📡 통신·미디어·우주·IoT·표준 뉴스</h3>
-<ul id="news"></ul>
-
-<script>
-const KEYWORDS = "통신 미디어 우주 IoT 표준";
-const MAX_NEWS = 5;
-
-const RSS_URL = `https://news.google.com/rss/search?q=통신%20미디어%20우주%20IoT%20표준&hl=ko&gl=KR&ceid=KR:ko`;
-
-function summarize(text, len=80){
-  return text.replace(/<[^>]*>/g, '').slice(0,len) + "...";
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f6f8;
+    margin: 0;
+    padding: 20px;
 }
 
-async function loadNews(){
-  const proxy = "https://api.allorigins.win/raw?url=";
-  const res = await fetch(proxy + encodeURIComponent(RSS_URL));
-  const xml = await res.text();
-  const parser = new DOMParser();
-  const rss = parser.parseFromString(xml, "text/xml");
+h1 {
+    text-align: center;
+    color: #333;
+}
 
-  const items = rss.querySelectorAll("item");
-  const ul = document.getElementById("news");
+.news-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
 
-  for(let i=0; i<Math.min(MAX_NEWS, items.length); i++){
-    const item = items[i];
-    const title = item.querySelector("title").textContent;
-    const link = item.querySelector("link").textContent;
-    const desc = item.querySelector("description").textContent;
+.news-card {
+    background: white;
+    margin-bottom: 15px;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: 0.2s;
+}
 
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <a href="${link}" target="_blank
+.news-card:hover {
+    transform: translateY(-3px);
+}
+
+.news-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1a0dab;
+    text-decoration: none;
+}
+
+.news-source {
+    font-size: 13px;
+    color: #777;
+    margin-top: 5px;
+}
+
+.news-date {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.loading {
+    text-align: center;
+    color: #666;
+    margin-top: 50px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📡 통신 · 미디어 · 우주 · IoT · 표준 뉴스</h1>
+
+<div class="news-container" id="news">
+    <div class="loading">뉴스 불러오는 중...</div>
+</div>
+
+<script>
+const RSS_URL = "https://news.google.com/rss/search?q=통신 미디어 우주 IoT 표준&hl=ko&gl=KR&ceid=KR:ko";
+
+// RSS → JSON 변환용 (무료 API)
+const API = "https://api.allorigins.win/raw?url=" + encodeURIComponent(RSS_URL);
+
+fetch(API)
+.then(res => res.text())
+.then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+.then(data => {
+    const items = data.querySelectorAll("item");
+    const container = document.getElementById("news");
+    container.innerHTML = "";
+
+    // 최신 5개만
+    [...items].slice(0,5).forEach(item => {
+        const title = item.querySelector("title").textContent;
+        const link = item.querySelector("link").textContent;
+        const pubDate = new Date(item.querySelector("pubDate").textContent).toLocaleString();
+
+        const card = document.createElement("div");
+        card.className = "news-card";
+
+        card.innerHTML = `
+            <a href="${link}" target="_blank" class="news-titlete">${pubDate}</div>
+        `;
+
+        container.appendChild(card);
+    });
+})
+.catch(err => {
+    document.getElementById("news").innerHTML = "뉴스를 불러올 수 없습니다.";
+    console.error(err);
+});
+</script>
+
+</body>
+</html>
