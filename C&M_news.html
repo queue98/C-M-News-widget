@@ -56,16 +56,30 @@ a { text-decoration:none; color:black; }
 </head>
 
 <body>
+
 <h2>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h2>
 <div class="container" id="news"></div>
 
 <script>
-const KEYWORDS = "통신 미디어 우주 IoT 6G 표준";
+
+// ✅ 키워드 확장 (표준연구소 최적화)
+const PRIMARY = [
+  "6G","5G","통신","네트워크","위성","우주",
+  "IoT","AI","미디어","코덱","데이터센터"
+];
+
+const SECONDARY = [
+  "표준","표준화","국제표준","3GPP","ETSI","ITU",
+  "특허","특허풀","기술","개발","협력"
+];
+
+const KEYWORDS = `(${PRIMARY.join(" OR ")}) (${SECONDARY.join(" OR ")})`;
+
 const RSS_URL = "https://news.google.com/rss/search?q="
   + encodeURIComponent(KEYWORDS)
   + "&hl=ko&gl=KR&ceid=KR:ko";
 
-// 👉 rss2json 사용 (안정적)
+// rss2json
 const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
 
 fetch(API_URL)
@@ -85,7 +99,7 @@ fetch(API_URL)
     return pub >= oneMonthAgo;
   });
 
-  // ✅ 5개 이상 표시 (전체 보여줌)
+  // ✅ 결과 출력
   filtered.forEach(item => {
 
     const title = item.title;
@@ -110,16 +124,17 @@ fetch(API_URL)
 
     container.innerHTML += `
       <div class="card">
+
         <div class="date">📅 ${date}</div>
 
-        ${link}
-          <div class="title">${title}</div>
+        <a href="${link}" target="_blanktle">${title}</div>
         </a>
 
         <div>
           <span class="signal ${signalClass}"></span>
           <span class="badge">${category}</span>
         </div>
+
       </div>
     `;
   });
