@@ -1,5 +1,7 @@
-const PRIMARY_KEYWORDS = "통신" OR "미디어" OR "우주" OR "IoT" OR "6G" OR "표준" OR "국제 표준" OR "표준화" OR "AI" OR "코덱" OR "MPEG" OR "3GPP" OR "ITU" OR "반도체";
-const SECONDARY_KEYWORDS = 5G" OR "네트워크" OR "위성" OR "AI 반도체" OR "데이터센터" OR "XR" OR "플랫폼";
+const PRIMARY_KEYWORDS = 
+  '("통신" OR "미디어" OR "우주" OR "IoT" OR "6G" OR "표준" OR "국제 표준" OR "표준화" OR "AI" OR "코덱" OR "MPEG" OR "3GPP" OR "ITU" OR "반도체")';
+
+const SECONDARY_KEYWORDS =   '("5G" OR "네트워크" OR "위성" OR "AI 반도체" OR "데이터센터" OR "XR" OR "플랫폼")';
 
 function fetchNews(keywords) {
   const rss = "https://news.google.com/rss/search?q="
