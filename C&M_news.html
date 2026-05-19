@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body { font-family: Arial; font-size:14px; margin:10px; }
+li { margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<h3>📡 통신·미디어·우주·IoT·표준 뉴스</h3>
+<ul id="news"></ul>
+
+<script>
+const KEYWORDS = "통신 미디어 우주 IoT 표준";
+const MAX_NEWS = 5;
+
+const RSS_URL = `https://news.google.com/rss/search?q=${encodeURIComponent(KEYWORDS)}&hl=ko&gl=KR&ceid=KR:ko`;
+
+function summarize(text, len=80){
+  return text.replace(/<[^>]*>/g, '').slice(0,len) + "...";
+}
+
+async function loadNews(){
+  const proxy = "https://api.allorigins.win/raw?url=";
+  const res = await fetch(proxy + encodeURIComponent(RSS_URL));
+  const xml = await res.text();
+  const parser = new DOMParser();
+  const rss = parser.parseFromString(xml, "text/xml");
+
+  const items = rss.querySelectorAll("item");
+  const ul = document.getElementById("news");
+
+  for(let i=0; i<Math.min(MAX_NEWS, items.length); i++){
+    const item = items[i];
+    const title = item.querySelector("title").textContent;
+    const link = item.querySelector("link").textContent;
+    const desc = item.querySelector("description").textContent;
+
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <a href="${link}" target="_blank
