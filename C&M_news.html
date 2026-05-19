@@ -1,222 +1,144 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>AI 뉴스 대시보드</title>
 
 <style>
-body { font-family: sans-serif; background:#f5f7fb; margin:0; }
-.container { max-width:900px; margin:auto; padding:20px; }
-
-/* ✅ 제목 강조 */
-.title a {
-  font-size:18px;
-  font-weight:bold;
-  color:#1a73e8;
-  text-decoration:none;
+body {
+  font-family: Arial;
+  background: #f5f7fb;
+  margin: 0;
+  padding: 20px;
 }
 
-/* 카드 */
+h1 {
+  text-align: center;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
 .card {
-  background:white;
-  border-radius:12px;
-  margin-top:16px;
-  overflow:hidden;
-  box-shadow:0 3px 8px rgba(0,0,0,0.1);
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: 0.2s;
 }
 
-/* 썸네일 */
-.thumb {
-  width:100%;
-  height:180px;
-  background-size:cover;
-  background-position:center;
+.card:hover {
+  transform: translateY(-2px);
 }
 
-.content {
-  padding:14px;
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
 }
-
-.summary { font-size:13px; margin:8px 0; }
 
 .meta {
-  font-size:11px;
-  color:gray;
-  margin-top:6px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
 }
 
-/* 태그 */
-.tag {
-  background:#e8f0fe;
-  padding:3px 6px;
-  border-radius:6px;
-  margin-right:4px;
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+  margin-right: 4px;
+  background: #eee;
 }
 
-/* ✅ Signal Score (신호등) */
-.score {
-  float:right;
-  font-size:16px;
+.signal {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
 }
 
-.red { color:#e53935; }     /* HIGH */
-.yellow { color:#fbc02d; }  /* MID */
-.green { color:#43a047; }   /* LOW */
+.red { background: #e74c3c; }
+.yellow { background: #f1c40f; }
+.green { background: #2ecc71; }
 
-/* 필터 */
-.filter button {
-  margin:4px;
-  padding:6px 10px;
-  border:none;
-  border-radius:8px;
-  background:#ddd;
-  cursor:pointer;
+a {
+  text-decoration: none;
+  color: black;
 }
 </style>
-
 </head>
 
 <body>
+<h1>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h1>
 
-<div class="container">
-
-<h2>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h2>
-
-<div id="news"></div>
-
-</div>
+<div class="container" id="news"></div>
 
 <script>
+const KEYWORDS = "통신 미디어 우주 IoT 6G 표준";
+const RSS_URL = "https://news.google.com/rss/search?q="
+  + encodeURIComponent(KEYWORDS)
+  + "&hl=ko&gl=KR&ceid=KR:ko";
 
-// ✅ 검색식 (품질 유지)
-const KEYWORDS =
- '(6G OR 통신 OR telecom OR media OR 미디어 OR satellite OR 위성 OR IoT) ' +
- '(standard OR 표준 OR 3GPP OR ITU)';
+fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL))
+  .then(res => res.json())
+  .then(data => {
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(data.contents, "text/xml");
+    const items = xml.querySelectorAll("item");
 
+    const container = document.getElementById("news");
+    container.innerHTML = "";
 
-const RSS_URL =
- "https://news.google.com/rss/search?q=" + encodeURIComponent(KEYWORDS) +
- "&hl=ko&gl=KR&ceid=KR:ko";
+    items.forEach((item, i) => {
+      if (i >= 5) return;
 
-
-const API =
- "https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL);
-
-// ✅ 링크 변환
-function extractRealLink(link){
-  try{
-    const u = new URL(link);
-    const p = new URLSearchParams(u.search);
-    return p.get("url") || link;
-  } catch{return link;}
-}
-
-// ✅ 이미지
-function extractImage(desc){
-  const m = desc.match(/<img.*?src="(.*?)"/);
-  return m ? m[1] : "https://via.placeholder.com/800x400";
-}
-
-// ✅ 빠른 요약 (초경량)
-
-function quickSummary(desc){
-  const text = desc.replace(/<[^>]+>/g,"");
-  if(text.includes("6G")) return "6G";
-  if(text.includes("우주") || text.includes("위성")) return "우주";
-  if(text.includes("IoT")) return "IoT";
-  if(text.includes("표준")) return "표준";
-  return "통신";
-}
-
-// ✅ getTag 추가
-function getTag(text){
-  if(text.includes("6G")) return "6G";
-  if(text.includes("우주") || text.includes("위성")) return "우주";
-  if(text.includes("IoT")) return "IoT";
-  if(text.includes("표준")) return "표준";
-  return "통신";
-}
-
-
-// ✅ Signal Score + 색상
-function getScore(text){
-  if(text.includes("시장") || text.includes("상용화")){
-    return {label:"🔴", cls:"red"};
-  }
-  if(text.includes("개발") || text.includes("연구")){
-    return {label:"🟡", cls:"yellow"};
-  }
-  return {label:"🟢", cls:"green"};
-}
-
-// ✅ RSS 파싱
-function parseRSS(xml){
-  const doc = new DOMParser().parseFromString(xml,"text/xml");
-
-  return [...doc.querySelectorAll("item")]
-    .slice(0,5)
-    .map(item=>{
-
-      const desc = item.querySelector("description").textContent;
       const title = item.querySelector("title").textContent;
+      const link = item.querySelector("link").textContent;
+      const pubDate = new Date(item.querySelector("pubDate").textContent);
 
-      const score = getScore(title);
+      // 날짜 포맷
+      const date = pubDate.toLocaleDateString("ko-KR");
 
-      return {
-        title,
-        link: extractRealLink(item.querySelector("link").textContent),
-        image: extractImage(desc),
-        summary: quickSummary(desc),
-        tag: getTag(title),
-        score: score
-      };
+      // 카테고리 자동 분류
+      let category = "기타";
+      if (title.includes("6G")) category = "6G";
+      else if (title.includes("위성") || title.includes("우주")) category = "우주";
+      else if (title.includes("IoT")) category = "IoT";
+      else if (title.includes("표준")) category = "표준";
+      else if (title.includes("통신")) category = "통신";
+
+      // 신호등 (단순 룰 기반)
+      let signalClass = "green";
+      if (title.includes("투자") || title.includes("출시") || title.includes("확장"))
+        signalClass = "red";
+      else if (title.includes("협력") || title.includes("개발"))
+        signalClass = "yellow";
+
+      container.innerHTML += `
+        <div class="card">
+          <a href="${link}" target="_ass="title">${title}</div>
+          </a>
+          <div class="meta">
+            📅 ${date}
+          </div>
+          <div>
+            <span class="signal ${signalClass}"></span>
+            <span class="badge">${category}</span>
+          </div>
+        </div>
+      `;
     });
-}
-
-// ✅ 렌더 (빠름)
-function render(list){
-
-  const wrap = document.getElementById("news");
-  wrap.innerHTML = "";
-
-  list.forEach(n=>{
-
-    const html = `
-    <div class="card">
-
-      <div class="thumb" style="background-image:url('${n.image}')"></div>
-
-      <div class="content">
-
-        <div class="title">
-          <a href="${n.link}" target        <span class="score ${n.score.cls}">${n.score.label}</span>
-        </div>
-
-        <div class="summary">${n.summary}</div>
-
-        <div class="meta">
-          <span class="tag">${n.tag}</span>
-        </div>
-
-      </div>
-    </div>
-    `;
-
-    wrap.insertAdjacentHTML("beforeend", html);
+  })
+  .catch(err => {
+    document.getElementById("news").innerHTML = "뉴스를 불러올 수 없습니다.";
   });
-}
-
-// ✅ 실행
-fetch(API)
-.then(r=>r.json())
-.then(data=>{
-  const parsed = parseRSS(data.contents);
-  render(parsed);
-})
-.catch(()=>{
-  document.getElementById("news").innerHTML = "❌ 뉴스 로드 실패";
-});
-
 </script>
 
 </body>
