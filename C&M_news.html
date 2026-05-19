@@ -16,7 +16,7 @@ li { margin-bottom:10px; }
 const KEYWORDS = "통신 미디어 우주 IoT 표준";
 const MAX_NEWS = 5;
 
-const RSS_URL = `https://news.google.com/rss/search?q=${encodeURIComponent(KEYWORDS)}&hl=ko&gl=KR&ceid=KR:ko`;
+const RSS_URL = `ps://news.google.com/rss/search?q=${encodeURIComponent(KEYWORDS)}&hl=ko&gl=KR&ceid=KR:ko`;
 
 function summarize(text, len=80){
   return text.replace(/<[^>]*>/g, '').slice(0,len) + "...";
