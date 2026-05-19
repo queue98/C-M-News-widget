@@ -93,9 +93,11 @@ const KEYWORDS =
  '(6G OR 통신 OR telecom OR media OR 미디어 OR satellite OR 위성 OR IoT) ' +
  '(standard OR 표준 OR 3GPP OR ITU)';
 
+
 const RSS_URL =
  "https://news.google.com/rss/search?q=" + encodeURIComponent(KEYWORDS) +
-  "&hl=ko&gl=KR&ceid=KR:ko";
+ "&hl=ko&gl=KR&ceid=KR:ko";
+
 
 const API =
  "https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL);
@@ -116,12 +118,25 @@ function extractImage(desc){
 }
 
 // ✅ 빠른 요약 (초경량)
+
 function quickSummary(desc){
-  const text = desc우주") || text.includes("위성")) return "우주";
+  const text = desc.replace(/<[^>]+>/g,"");
+  if(text.includes("6G")) return "6G";
+  if(text.includes("우주") || text.includes("위성")) return "우주";
   if(text.includes("IoT")) return "IoT";
   if(text.includes("표준")) return "표준";
   return "통신";
 }
+
+// ✅ getTag 추가
+function getTag(text){
+  if(text.includes("6G")) return "6G";
+  if(text.includes("우주") || text.includes("위성")) return "우주";
+  if(text.includes("IoT")) return "IoT";
+  if(text.includes("표준")) return "표준";
+  return "통신";
+}
+
 
 // ✅ Signal Score + 색상
 function getScore(text){
