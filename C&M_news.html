@@ -1,3 +1,5 @@
+[완성 코드]
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -18,41 +20,23 @@ body { font-family: Arial; background:#f5f7fb; padding:20px; }
 }
 
 .date { font-size:12px; color:#888; margin-bottom:6px; }
-
-.title {
-  font-size:18px;
-  font-weight:bold;
-  margin-bottom:8px;
-}
-
-.summary {
-  font-size:13px;
-  color:#444;
-  margin-bottom:10px;
-  line-height:1.4;
-}
-
-/* ✅ 박스 안 정렬 */
-.meta-box {
-  display:inline-flex;
-  align-items:center;
-  padding:6px 10px;
-  border-radius:10px;
-  background:#f1f3f6;
-  gap:6px;
-}
+.title { font-size:18px; font-weight:bold; margin-bottom:10px; }
 
 .badge {
+  display:inline-block;
+  padding:4px 8px;
   font-size:11px;
-  padding:3px 6px;
-  border-radius:6px;
-  background:#ddd;
+  border-radius:8px;
+  background:#eee;
+  margin-right:6px;
 }
 
 .signal {
+  display:inline-block;
   width:10px;
   height:10px;
   border-radius:50%;
+  margin-right:6px;
 }
 
 .red { background:#e74c3c; }
@@ -71,7 +55,7 @@ a { text-decoration:none; color:black; }
 
 <script>
 
-// ✅ 키워드
+// ✅ 확장 키워드
 const PRIMARY = [
   "6G","5G","통신","네트워크","위성","우주",
   "IoT","AI","미디어","코덱","데이터센터"
@@ -79,7 +63,7 @@ const PRIMARY = [
 
 const SECONDARY = [
   "표준","표준화","국제표준","3GPP","ETSI","ITU",
-  "특허","특허풀","기술","개발","협력","투자","출시"
+  "특허","특허풀","기술","개발","협력"
 ];
 
 const KEYWORDS = `(${PRIMARY.join(" OR ")}) (${SECONDARY.join(" OR ")})`;
@@ -88,6 +72,7 @@ const RSS_URL = "https://news.google.com/rss/search?q="
   + encodeURIComponent(KEYWORDS)
   + "&hl=ko&gl=KR&ceid=KR:ko";
 
+// ✅ count=50 추가 → 뉴스 개수 확대
 const API_URL =
   "https://api.rss2json.com/v1/api.json?rss_url="
   + encodeURIComponent(RSS_URL)
@@ -104,6 +89,7 @@ fetch(API_URL)
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(now.getMonth() - 2);
 
+  // ✅ 최근 2개월 필터
   const filtered = data.items.filter(item => {
     const pub = new Date(item.pubDate);
     return pub >= twoMonthsAgo;
@@ -115,16 +101,7 @@ fetch(API_URL)
     const link = item.link;
     const date = new Date(item.pubDate).toLocaleDateString("ko-KR");
 
-    // ✅ AI 요약 (간단 버전)
-    let summary = item.description
-      .replace(/<[^>]*>/g, "")  // HTML 제거
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (summary.length > 120)
-      summary = summary.substring(0, 120) + "...";
-
-    // ✅ 카테고리
+    // 카테고리
     let category = "기타";
     if (title.includes("6G")) category = "6G";
     else if (title.includes("우주") || title.includes("위성")) category = "우주";
@@ -132,39 +109,25 @@ fetch(API_URL)
     else if (title.includes("표준")) category = "표준";
     else if (title.includes("통신")) category = "통신";
 
-    // ✅ Signal Score (고도화)
-    let score = 0;
-
-    if (/투자|출시|확장|상용화|양산/.test(title)) score += 3;
-    if (/협력|제휴|계약|개발/.test(title)) score += 2;
-    if (/연구|검토|논의/.test(title)) score += 1;
-
+    // 신호등
     let signalClass = "green";
-    let level = "LOW";
-
-    if (score >= 3) {
+    if (title.includes("투자") || title.includes("출시") || title.includes("확장"))
       signalClass = "red";
-      level = "HIGH";
-    } else if (score === 2) {
+    else if (title.includes("협력") || title.includes("개발"))
       signalClass = "yellow";
-      level = "MID";
-    }
 
     container.innerHTML += `
       <div class="card">
 
         <div class="date">📅 ${date}</div>
 
-        <a href="${link}" target="_s="title">${title}</div>
+        <a href="${link}" targetlass="title">${title}</div>
         </a>
 
-        <div class="summary">${summary}</div>
-
-        <div class="meta-box">
-          <span class="signal ${signalClass}"></span>
-          <span class="badge">${level}</span>
-          <span class="badge">${category}</span>
-        </div>
+		<div class="meta-box">
+		  <span class="signal ${signalClass}"></span>
+		  <span class="badge">${category}</span>
+		</div>
 
       </div>
     `;
@@ -178,7 +141,6 @@ fetch(API_URL)
 .catch(() => {
   document.getElementById("news").innerHTML = "뉴스 로드 실패";
 });
-
 </script>
 
 </body>
