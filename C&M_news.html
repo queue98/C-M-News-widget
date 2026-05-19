@@ -11,18 +11,38 @@ body { font-family: sans-serif; background:#f5f7fb; margin:0; }
 h1 { font-size:20px; }
 
 .card {
-  background:white; border-radius:12px;
-  padding:15px; margin-top:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  background:white;
+  border-radius:12px;
+  margin-top:16px;
+  overflow:hidden;
+  box-shadow:0 3px 8px rgba(0,0,0,0.1);
 }
 
-.title a { color:#1a73e8; font-weight:bold; text-decoration:none;}
+.thumb {
+  width:100%;
+  height:180px;
+  background-size:cover;
+  background-position:center;
+}
+
+.content {
+  padding:14px;
+}
+
+.title a {
+  color:#1a73e8;
+  font-weight:bold;
+  text-decoration:none;
+}
+
 .summary { font-size:13px; margin:8px 0; }
+
 .meta { font-size:11px; color:gray; }
 
 .tag {
-  background:#e8f0fe; padding:3px 6px;
-  border-radius:6px; margin-right:4px;
+  background:#e8f0fe;
+  padding:3px 6px;
+  border-radius:6px;
 }
 
 .score {
@@ -38,14 +58,18 @@ h1 { font-size:20px; }
   background:#ddd;
   cursor:pointer;
 }
-.filter button.active { background:#1a73e8; color:white; }
-
+.filter button.active {
+  background:#1a73e8;
+  color:white;
+}
 </style>
+
 </head>
 
 <body>
 
 <div class="container">
+
 <h1>📡 AI 뉴스 (6G · 통신 · 우주 · IoT · 표준)</h1>
 
 <div class="filter">
@@ -54,49 +78,75 @@ h1 { font-size:20px; }
   <button onclick="setFilter('우주')">우주</button>
   <button onclick="setFilter('IoT')">IoT</button>
   <button onclick="setFilter('표준')">표준</button>
-  <button onclick="setFilter('통신')">통신</button>
 </div>
 
 <div id="news"></div>
+
 </div>
 
 <script>
 
-// ✅ 설정
-const OPENAI_API_KEY = "여기에_API_키를_넣으세요";
+// ✅ GPT KEY
+const OPENAI_API_KEY = "여기에_API_KEY";
 
 // ✅ 상태
-let CURRENT_FILTER = "ALL";
 let NEWS_DATA = [];
+let CURRENT_FILTER = "ALL";
 
-// ✅ RSS URL
-const KEYWORDS = "6G OR 통신 OR 위성 OR 우주 OR IoT OR 표준";
-const RSS_URL = "https://news.google.com/rss/search?q=" + encodeURIComponent(KEYWORDS) + "&hl=ko&gl=KR&ceid=KR:ko";
+// ✅ 🔥 개선된 검색식 (핵심)
+const KEYWORDS =
+  '(6G OR 통신 OR telecom OR media OR 미디어 OR satellite OR 위성 OR IoT) ' +
+  '(standard OR 표준 OR 3GPP OR ITU)';
 
-// ✅ CORS 해결
-const API = "https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL);
+const RSS_URL =
+  "https://news.google.com/rss/search?q=" + encodeURIComponent(KEYWORDS) +
+  "&hl=ko&gl=KR&ceid=KR:ko";
 
-// ✅ 태그 추출
+// ✅ 안정 proxy
+const API =
+  "https://api.allorigins.win/get?url=" + encodeURIComponent(RSS_URL);
+
+// ✅ 원본 링크 추출 (핵심 해결)
+function extractRealLink(link){
+  try{
+    const url = new URL(link);
+    const params = new URLSearchParams(url.search);
+    if(params.get("url")){
+      return params.get("url");
+    }
+    return link;
+  } catch {
+    return link;
+  }
+}
+
+// ✅ 썸네일 추출
+function extractImage(desc){
+  const match = desc.match(/<img.*?src="(.*?)"/);
+  return match ? match[1] : "https://via.placeholder.com/800x400?text=No+Image";
+}
+
+// ✅ 태그
 function getTag(text){
   if(text.includes("6G")) return "6G";
   if(text.includes("위성") || text.includes("우주")) return "우주";
   if(text.includes("IoT")) return "IoT";
-  if(text.includes("표준")) return "표준";
+  if(text.includes("표준") || text.includes("3GPP")) return "표준";
   return "통신";
 }
 
 // ✅ Signal Score
 function getScore(text){
-  if(text.includes("투자") || text.includes("시장") || text.includes("상용화")) return "HIGH";
-  if(text.includes("연구") || text.includes("개발")) return "MID";
+  if(text.includes("시장") || text.includes("상용화")) return "HIGH";
+  if(text.includes("개발") || text.includes("연구")) return "MID";
   return "LOW";
 }
 
 // ✅ GPT 요약
-async function getSummary(text){
+async function summarize(text){
 
   if(!OPENAI_API_KEY.includes("API")){
-    return "(API Key 넣으면 AI 요약 제공됩니다)";
+    return "요약 없음 (API key 넣으면 활성화)";
   }
 
   try{
@@ -111,7 +161,7 @@ async function getSummary(text){
         messages:[
           {
             role:"user",
-            content:`다음 뉴스를 2줄 요약 + 사업 Implication 1줄:\n${text}`
+            content:`뉴스를 2줄 요약 + 사업 insight 1줄:\n${text}`
           }
         ]
       })
@@ -120,7 +170,7 @@ async function getSummary(text){
     const data = await res.json();
     return data.choices[0].message.content;
 
-  } catch(e){
+  }catch{
     return "요약 실패";
   }
 }
@@ -128,78 +178,19 @@ async function getSummary(text){
 // ✅ RSS 파싱
 function parseRSS(xml){
   const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, "text/xml");
-  const items = doc.querySelectorAll("item");
+  const doc = parser.parseFromString(xml,"text/xml");
 
-  return Array.from(items).slice(0,5).map(item => ({
-    title: item.querySelector("title").textContent,
-    link: item.querySelector("link").textContent,
-    desc: item.querySelector("description").textContent,
-    date: item.querySelector("pubDate").textContent
+  return [...doc.querySelectorAll("item")].slice(0,d.map(n => ({
+    ...n,
+    tag: getTag(n.title),
+    score: getScore(n.title)
   }));
-}
-
-// ✅ 렌더
-async function render(){
-
-  const container = document.getElementById("news");
-  container.innerHTML = "불러오는 중...";
-
-  const filtered = NEWS_DATA.filter(n => 
-    CURRENT_FILTER==="ALL" || n.tag===CURRENT_FILTER
-  );
-
-  container.innerHTML = "";
-
-  for(let item of filtered){
-
-    const summary = await getSummary(item.desc);
-
-    const div = document.createElement("div");
-    div.className = "card";
-
-    div.innerHTML = `
-      <div class="title">
-        <a href="${item.link}" target="_blank <span class="score">${item.score}</span>
-      </div>
-      <div class="summary">${summary}</div>
-      <div class="meta">
-        <span class="tag">${item.tag}</span>
-        ${new Date(item.date).toLocaleDateString()}
-      </div>
-    `;
-
-    container.appendChild(div);
-  }
-}
-
-// ✅ 필터
-function setFilter(f){
-  CURRENT_FILTER = f;
-  render();
-}
-
-// ✅ 초기 로드
-fetch(API)
-.then(res=>res.json())
-.then(data=>{
-
-  const parsed = parseRSS(data.contents);
-
-  NEWS_DATA = parsed.map(n => {
-    const tag = getTag(n.title);
-    return {
-      ...n,
-      tag: tag,
-      score: getScore(n.title)
-    };
-  });
 
   render();
 
 })
-.catch(err=>{
-  document.getElementById("news").innerHTML = "❌ 뉴스 불러오기 실패";
+.catch(()=>{
+  document.getElementById("news").innerHTML = "❌ 뉴스 로드 실패";
 });
 
 </script>
